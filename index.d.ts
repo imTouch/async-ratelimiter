@@ -26,6 +26,8 @@ declare module 'async-ratelimiter' {
   class RateLimiter {
     constructor(options: RateLimiter.ConstructorOptions);
     get(options: RateLimiter.GetOptions): Promise<RateLimiter.Status>;
+    try(options: RateLimiter.GetOptions): Promise<RateLimiter.Status>;
+    zremrangeToday(options: RateLimiter.GetOptions): Promise<RateLimiter.Status>;
   }
 
   export = RateLimiter;
