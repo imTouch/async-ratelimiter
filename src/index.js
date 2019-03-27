@@ -111,6 +111,40 @@ module.exports = class Limiter {
     const oldest = parseInt(res[4][1])
     const oldestInRange = parseInt(res[5][1])
     const resetMicro = (Number.isNaN(oldestInRange) ? oldest : oldestInRange) + duration * 1000
+    return {
+      remaining: count < max ? max - count : 0,
+      reset: Math.floor(resetMicro / 1000000),
+      total: max
+    }
+  }
+
+  async tryZremrangeToday ({ id = this.id, max = this.max, duration = this.duration } = {}) {
+    assert(id, 'id required')
+    assert(max, 'max required')
+    assert(duration, 'duration required')
+
+    const { db } = this
+    const key = this.getKey(id)
+    const now = microtime.now()
+    const today = microtime.today()
+    const start = now - duration * 1000
+
+    const res = await db
+      .multi()
+      .zremrangebyscore([key, 0, today])
+      .zremrangebyscore([key, 0, start])
+      .zcard([key])
+      .zrange([key, 0, 0])
+      .zrange([key, -max, -max])
+      .zremrangebyrank([key, 0, -(max + 1)])
+      .zcard([key])
+      .pexpire([key, duration])
+      .exec()
+
+    const count = parseInt(res[2][1])
+    const oldest = parseInt(res[3][1])
+    const oldestInRange = parseInt(res[4][1])
+    const resetMicro = (Number.isNaN(oldestInRange) ? oldest : oldestInRange) + duration * 1000
 
     return {
       remaining: count < max ? max - count : 0,
